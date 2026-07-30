@@ -4,7 +4,6 @@ import json
 import random
 import string
 import hashlib
-import urllib.parse
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, jsonify, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -68,7 +67,7 @@ USERS = {
         "email": "admin@tra.go.tz",
         "phone": "0700000000",
         "registered_at": datetime.now() - timedelta(days=40),
-        "can_add_officers": True, # Super Admin Pekee
+        "can_add_officers": True,
     },
     "142-998-775": {
         "password_hash": generate_password_hash("Kodi@2026!"),
@@ -119,11 +118,10 @@ def get_taxpayer_profile(identifier, registered_at):
     for i in range(num_receipts):
         d = (datetime.now() - timedelta(days=i * 2 + 1)).strftime("%Y-%m-%d")
         amt = rnd.randint(50000, 450000)
-        vat = int(amt * 0.18) # 18% VAT Kamili
+        vat = int(amt * 0.18)
         total_sales += amt
         receipts.append({"date": d, "receipt_no": f"EFD-99{rnd.randint(10000, 99999)}", "amount": amt, "vat": vat})
     
-    # Kodi inayohesabiwa inatokana kikamilifu na miamala
     tax_due = int(total_sales * 0.18)
     confidence = min(99, 65 + rnd.randint(0, 15))
     
@@ -270,7 +268,6 @@ HTML_TEMPLATE = """
     <title>{{ t.app_name }} - Mamlaka ya Mapato Tanzania</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* OFFICIAL TRA COLOR PALETTE: Navy Blue (#002B49), Gold (#F4C430), Green (#00875A) */
         body { background-color: #06101E; color: #E2E8F0; font-family: 'Segoe UI', Arial, sans-serif; }
         .tra-card { background: linear-gradient(145deg, #0A1B30, #002B49); border: 1px solid #1E3A66; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .text-tra-gold { color: #F4C430 !important; }
@@ -297,7 +294,6 @@ HTML_TEMPLATE = """
         .tz-pin { position: absolute; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; border-radius: 50%; background: #F4C430; cursor: pointer; }
         .tz-pin.office-pin { background: #00875A; box-shadow: 0 0 8px #00875A; }
         
-        /* Modern Profile Card Styling for Akaunti Yangu */
         .profile-avatar-box { width: 110px; height: 110px; border-radius: 50%; background: #002B49; border: 4px solid #F4C430; display: flex; align-items: center; justify-content: center; font-size: 42px; color: #F4C430; margin: 0 auto 15px auto; }
         
         .tab-panel { display: none; } .tab-panel.active { display: block; }
@@ -391,6 +387,13 @@ HTML_TEMPLATE = """
         </div>
     </div>
 </div>
+<script>
+    function togglePass(id, el) {
+        const input = document.getElementById(id);
+        if (input.type === 'password') { input.type = 'text'; el.style.color = '#F4C430'; }
+        else { input.type = 'password'; el.style.color = '#94A3B8'; }
+    }
+</script>
 
 {% else %}
 <div class="container-fluid">
@@ -586,7 +589,7 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
-            <!-- TAB: QUESTION REVIEW (ADMIN ONLY & DIRECT THREAD REPLY) -->
+            <!-- TAB: QUESTION REVIEW (ADMIN ONLY) -->
             <div class="tab-panel" id="tab-review">
                 <div class="tra-card">
                     <h5 class="text-tra-gold mb-3">&#128269; {{ t.review_title }}</h5>
@@ -619,7 +622,7 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
-            <!-- TAB: AKAUNTI YANGU (MODERN USER PROFILE DASHBOARD VIEW) -->
+            <!-- TAB: AKAUNTI YANGU -->
             <div class="tab-panel" id="tab-account">
                 <div class="row">
                     <div class="col-12 col-md-4">
@@ -681,7 +684,7 @@ HTML_TEMPLATE = """
     </div>
 </div>
 
-<!-- Modal ya GePG (Lipa Sasa na Kiasi Anachotaka Mteja) -->
+<!-- Modal ya GePG -->
 <div class="modal fade" id="gepgModal" tabindex="-1">
     <div class="modal-dialog"><div class="modal-content bg-dark border border-secondary text-white">
         <div class="modal-header border-secondary">
@@ -706,7 +709,6 @@ HTML_TEMPLATE = """
         </div>
     </div></div>
 </div>
-{% endif %}
 
 <script>
     function togglePass(id, el) {
@@ -762,7 +764,7 @@ HTML_TEMPLATE = """
         recognizer.start();
     }
 
-    const TRA_OFFICES_JS = {{ tra_offices|tojson }};
+    const TRA_OFFICES_JS = {{ (tra_offices or {})|tojson }};
     function showOfficeInfo(mkoa) {
         const off = TRA_OFFICES_JS[mkoa];
         const box = document.getElementById('office-info-box');
@@ -781,7 +783,7 @@ HTML_TEMPLATE = """
     let gepgModalInstance = null;
     function openGepgModal(fullAmount) {
         document.getElementById('gepg-control-no').innerText = 'TRA99' + Math.floor(10000000 + Math.random() * 90000000);
-        document.getElementById('gepg-custom-amount').value = fullAmount; // Mtumiaji anaweza kubadilisha
+        document.getElementById('gepg-custom-amount').value = fullAmount;
         gepgModalInstance = new bootstrap.Modal(document.getElementById('gepgModal'));
         gepgModalInstance.show();
     }
@@ -790,6 +792,8 @@ HTML_TEMPLATE = """
         setTimeout(() => { if (gepgModalInstance) gepgModalInstance.hide(); location.reload(); }, 1500);
     }
 </script>
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
@@ -851,7 +855,7 @@ def login():
     session['identifier'] = identifier
     session['masked_identifier'] = mask_middle(identifier)
     session['role_name'] = user["name"]
-    session['can_add_officers'] = user.get("can_add_officers", False) # Udhibiti wa Access
+    session['can_add_officers'] = user.get("can_add_officers", False)
     
     LOGIN_EVENTS.append({
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -913,7 +917,6 @@ def register_verify():
 @app.route('/admin/add-officer', methods=['GET', 'POST'])
 def add_officer():
     lang = get_lang()
-    # Udhibiti: Ni Super Admin Pekee anayeweza kumsajili Afisa mwingine
     if not session.get('can_add_officers'):
         return "Huna ruhusa ya kumsajili Afisa wa TRA.", 403
 
@@ -935,7 +938,7 @@ def add_officer():
         "phone": phone,
         "email": f"{identifier.lower()}@tra.go.tz",
         "registered_at": datetime.now(),
-        "can_add_officers": False, # Afisa mpya HANA ruhusa ya kumsajili mwingine
+        "can_add_officers": False,
     }
     save_state()
     return render_template_string(HTML_TEMPLATE, page='add_officer', lang=lang, t=TR[lang], error=None, success="Afisa mpya wa TRA amesajiliwa kikamilifu!")
@@ -958,7 +961,6 @@ def account_update():
     user["phone"] = phone
     session['role_name'] = fullname
 
-    # Ukaguzi wa Nenosiri la Awali kabla ya Kubadilisha
     if new_password:
         if not old_password or not check_password_hash(user["password_hash"], old_password):
             session['account_error'] = "Nenosiri la awali si sahihi. Mabadiliko ya nenosiri hayajahifadhiwa."
@@ -991,12 +993,10 @@ def answer_question():
     entry["answered"] = True
     entry["answer"] = answer_text
     
-    # AI kujifunza jibu jipya
     keywords = [w for w in re.findall(r"\w{4,}", entry["text"].lower())][:5]
     if keywords:
         QA_DATABASE.append({"keywords": keywords, "sw": answer_text, "en": answer_text})
 
-    # Kutuma jibu moja kwa moja kwa mtumiaji aliyewasilisha swali
     asker = entry.get("user")
     if asker:
         CHAT_HISTORY.setdefault(asker, []).append({
